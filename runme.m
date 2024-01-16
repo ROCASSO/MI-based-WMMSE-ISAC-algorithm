@@ -2,7 +2,7 @@
 % Communications: A WMMSE Framework
 % Yizhou Peng, Songjie Yang, Wanting Lyu, Ya Li, Hongjun He,
 % Zhongpei Zhang, Member, IEEE, and Chadi Assi, Fellow, IEEE
-rng(891236)%randomly chosen seed
+%randomly chosen seed
 sample_num = 300;
 x_axis_all = 0:0.01:0.99;
 rate_all = zeros(100,1,sample_num);
