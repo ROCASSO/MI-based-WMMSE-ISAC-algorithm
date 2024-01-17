@@ -31,7 +31,7 @@ U = cell(I+S,K);
 U(1:I)={zeros()};
 U(I+1,:) = {zeros()};
 % ===============================================================================
-
+%build the channel under 3.3Ghz with SV model with normalized gain variance
 
 V_ini = V_init_v2(I,S,K,T,Nr,d,P);
 V = V_ini;
