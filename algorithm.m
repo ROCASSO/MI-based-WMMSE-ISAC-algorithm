@@ -32,7 +32,109 @@ U(1:I)={zeros()};
 U(I+1,:) = {zeros()};
 % ===============================================================================
 %build the channel under 3.3Ghz with SV model with normalized gain variance
+for i = 1:I
+    for l = 1:C 
+        for s = 1:s_path+1
+        AOD2 = 2*rand()-1;
+        AOA2 = 2*rand()-1;
+        if l == 1
+            AOA2 = AOD2;
+        end
+        AOD = AOD2*pi/2;
+        AOA = AOA2*pi/2;
+       
+       
+            strvctc1 = zeros(T,1);
+            strvctc2 = zeros(d,1);
+            for t = 1:T
+                strvctc1(t) = exp( -1i* (2*pi*0.5) * (t-1) * sin(AOA));
 
+            end
+            for c = 1:d
+                strvctc2(c) = exp(-1i * (2*pi*0.5) * (c-1) * sin(AOD));
+            end
+            pow1 = trace(strvctc1*strvctc1');
+            strvctc1 = strvctc1/sqrt(pow1);
+            pow2 = trace(strvctc2*strvctc2');
+            strvctc2 = strvctc2/sqrt(pow2);
+            if l == 1 && s == 4
+                xinta = sqrt(1/2)*(normrnd(0,1)+1i*normrnd(0,1));
+            end
+            if l==1 && s~=4
+                xinta = sqrt(1/2)*(normrnd(0,0.1)+1i*normrnd(0,0.1));
+            end
+            if l~=1 && s==4
+                xinta = sqrt(1/2)*(normrnd(0,0.1)+1i*normrnd(0,0.1));
+            end
+            if l~=1 && s~=4
+                xinta = sqrt(1/2)*(normrnd(0,0.1)+1i*normrnd(0,0.1));
+            end
+
+            Hc = xinta*strvctc2*strvctc1';
+            H{i,K,K} = H{i,K,K}+Hc;
+            
+        end
+
+    end
+
+    H{i,K,K} = sqrt((T*R)/((s_path+1)*(C)))*H{i,K,K};
+
+end
+
+
+Hs(1:I+S,:,:) = {zeros(Nr,T)};
+Hl(:,:) = {zeros(Nr,T)};
+LAOA = [];
+LAOD = [];
+for cl = 1:L
+    AOAL = 2*rand()-1;
+    AODL = 2*rand()-1;
+    AODL = AODL*pi/2;
+    AOAL = AOAL*pi/2;
+    LAOA = [LAOA AOAL];
+    LAOD = [LAOD AODL];
+end
+for j = I+1 : I+S
+
+       
+       
+       LAOAS = LAOA;
+       LAODS = LAOD;
+        % % % % % % % % % % %
+        AOD0 = 2*rand()-1;
+        AOA0 = 2*rand()-1;
+
+        AOD = AOD0*pi/2;
+        AOA = AOA0*pi/2;
+        LAOAS = [AOA LAOA];
+        LAODS = [AOD LAOD];
+     for n = 1:L+1
+        strvct1 = zeros(T,1);
+        strvct2 = zeros(Nr,1);
+        for t = 1:T
+            strvct1(t) = exp(-1i * (2*pi*0.5) * (t-1) * sin(LAODS(n)));
+        end
+        for s = 1:Nr
+            strvct2(s) = exp(-1i * (2*pi*0.5) * (s-1) * sin(LAOAS(n)));
+        end
+        pow1 = trace(strvct1*strvct1');
+        strvct1 = strvct1/sqrt(pow1);
+        pow2 = trace(strvct2*strvct2');
+        strvct2 = strvct2/sqrt(pow2);
+        HR = strvct2*strvct1';
+        if n==1
+            sita = sqrt(1/2)*(normrnd(0,1)+1i*normrnd(0,1));
+            Hs1 = sita*HR;
+            H{j,K,K} = Hs1;
+        else
+            sita = sqrt(1/2)*(normrnd(0,1)+1i*normrnd(0,1));
+            Hl1 = sita*HR;
+            Hl{j-I,n-1} = Hl1;
+        end
+    end
+
+
+end
 V_ini = V_init_v2(I,S,K,T,Nr,d,P);
 V = V_ini;
 
