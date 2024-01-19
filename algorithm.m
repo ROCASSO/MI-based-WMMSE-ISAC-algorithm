@@ -80,19 +80,6 @@ for i = 1:I
     H{i,K,K} = sqrt((T*R)/((s_path+1)*(C)))*H{i,K,K};
 
 end
-
-
-Hs(1:I+S,:,:) = {zeros(Nr,T)};
-Hl(:,:) = {zeros(Nr,T)};
-LAOA = [];
-LAOD = [];
-for cl = 1:L
-    AOAL = 2*rand()-1;
-    AODL = 2*rand()-1;
-    AODL = AODL*pi/2;
-    AOAL = AOAL*pi/2;
-    LAOA = [LAOA AOAL];
-    LAOD = [LAOD AODL];
 end
 for j = I+1 : I+S
 
