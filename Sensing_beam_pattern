@@ -1,0 +1,397 @@
+
+% function [rate_saver_xls,average_rate_xls,sense_rate_xls,com_rate_xls,MMSE_rate_xls, MMSE_average_xls,MMSE_sense_xls,MMSE_com_xls] = init(snr)
+% function [sense_rate_xls,com_rate_xls] = init()
+% rng(292448)
+% rng(725818)
+% rng(719005)
+rng(891236)
+% rng(791236)
+% rng('shuffle')
+K = 1; % 基站个数
+T = 16; % 发射天线个数
+R = 4; % 接收天线个数
+d = R;
+Nr = 4;
+epsilon = 1e-3; % 收敛条件
+sigma2 =1; % 噪声功率
+snr = 25; % 信噪比
+P = db2pow(snr)*sigma2; % 发射功率
+SINRZF = 25;
+I = 3; % 每个基站服务的用户个数
+S = 1;%感知目标个数
+L = 4;%感知目标的杂波(clutter)个数
+s_path = 9;
+C = 1;
+alpha1 = ones(I+S,K); % 权重系数，都假设相同
+% a = sqrt((T*Nr)/(L+1));
+count = 0;
+
+% 假设每个用户有R路独立的数据流
+
+max_iter = 100;
+rate = []; % 初始化一个空向量记录rate
+
+H = cell(I+S,K,K); % 信道系数
+Hl = cell(S,L);
+Hs = cell(I+S,K,K);
+
+H(1:I,:,:) = {zeros(R,T)};
+% for i=1:I
+%     for k = 1:K
+%         for j=1:K
+%             H{i,k,j}=sqrt(1/2)*(randn(R,T)+1i*randn(R,T));
+%             power = trace(H{i,k,j}*H{i,k,j}');
+% %             H{i,k,j} = H{i,k,j}/sqrt(power);
+% %             Hzf{k,i,j} = H{i,k,j}';
+%         end
+%     end
+% end
+
+% 0.17907 -0.18849555922 -0.17541 0.17541
+CAOA = zeros();
+CAOD = [2*pi/9 -17*pi/36 -pi/3];
+LAOA = [0.34993851502 0.17541  -0.34993851502    -0.17550558983];
+LAOD = [-0.34993851502 -0.17541  0.34993851502   0.17550558983];
+% s_path_index = zeros(9,1);
+% CAOD = zeros();
+for i = 1:I
+    for l = 1:C
+        for s = 1:s_path+1
+            AOD2 = (2*rand()-1)*pi/2;
+            AOA2 = (2*rand()-1)*pi/2;
+            if l == 1 && s_path == 1
+                AOD2 = CAOD(i);
+                %              AOA2 = -AOD2;
+                AOA2 = -AOD2;
+                %              CAOD = [CAOD AOD2];
+            else
+                AOA = AOA2;
+                AOD = AOD2;
+            end
+
+            %         CAOA = [CAOA AOA];
+            %         CAOD = [CAOD AOD];
+
+
+            strvctc1 = zeros(T,1);
+            strvctc2 = zeros(d,1);
+            for t = 1:T
+                strvctc1(t) = exp( -1i* (2*pi*0.5) * (t-1) * sin(AOA));
+
+            end
+            for c = 1:d
+                strvctc2(c) = exp(-1i * (2*pi*0.5) * (c-1) * sin(AOD));
+            end
+            pow1 = trace(strvctc1*strvctc1');
+            strvctc1 = strvctc1/sqrt(pow1);
+            pow2 = trace(strvctc2*strvctc2');
+            strvctc2 = strvctc2/sqrt(pow2);
+            if l == 1 && s == 4
+                xinta = sqrt(1/2)*(normrnd(0,1)+1i*normrnd(0,1));
+            end
+            if l==1 && s~=4
+                xinta = sqrt(1/2)*(normrnd(0,0.1)+1i*normrnd(0,0.1));
+            end
+            if l~=1 && s==4
+                xinta = sqrt(1/2)*(normrnd(0,0.1)+1i*normrnd(0,0.1));
+            end
+            if l~=1 && s~=4
+                xinta = sqrt(1/2)*(normrnd(0,0.1)+1i*normrnd(0,0.1));
+            end
+
+            Hc = xinta*strvctc2*strvctc1';
+            H{i,K,K} = H{i,K,K}+Hc;
+
+        end
+
+    end
+
+    H{i,K,K} = sqrt((T*R)/((s_path+1)*(C)))*H{i,K,K};
+
+end
+
+
+Hs(1:I+S,:,:) = {zeros(Nr,T)};
+Hl(:,:) = {zeros(Nr,T)};
+
+
+for j = I+1 : I+S
+
+
+
+    %        LAOAS = LAOA;
+    %        LAODS = LAOD;
+    %         % % % % % % % % % % %
+    %         AOD0 = 2*rand()-1;
+    %         AOA0 = 2*rand()-1;
+    %
+    %         AOD = AOD0*pi/2;
+    %         AOA = AOA0*pi/2;
+    LAOAS = [0, LAOA];
+    LAODS = [0, LAOD];
+    for n = 1:L+1
+        strvct1 = zeros(T,1);
+        strvct2 = zeros(Nr,1);
+        for t = 1:T
+            strvct1(t) = exp(-1i * (2*pi*0.5) * (t-1) * sin(LAODS(n)));
+        end
+        for s = 1:Nr
+            strvct2(s) = exp(-1i * (2*pi*0.5) * (s-1) * sin(LAOAS(n)));
+        end
+        pow1 = trace(strvct1*strvct1');
+        strvct1 = strvct1/sqrt(pow1);
+        pow2 = trace(strvct2*strvct2');
+        strvct2 = strvct2/sqrt(pow2);
+        HR = strvct2*strvct1';
+        if n==1
+            sita = sqrt(1/2)*(normrnd(0,1)+1i*normrnd(0,1));
+            Hs1 = sita*HR;
+            H{j,K,K} = Hs1;
+        else
+            sita = sqrt(1/2)*(normrnd(0,1)+1i*normrnd(0,1));
+            Hl1 = sita*HR;
+            Hl{j-I,n-1} = Hl1;
+        end
+    end
+
+
+end
+%=======得clutter的信道=================================================
+% for ct = 1:S
+%     for l = 1:L
+%         AOD1 = rand();
+%         AOA1 = rand();
+%         AOD = AOD0*pi/2;
+%         AOA = AOA0*pi/2;
+%         strvctl1 = zeros(T,1);
+%         strvctl2 = zeros(T,1);
+%         for t = 1:T
+%             strvctl1(t) = exp(1i * (2*pi/0.0003) * (t-1) * 2 * sin(AOD));
+%             strvctl2(t) = exp(1i * (2*pi/0.0003) * (t-1) * 2 * sin(AOA));
+%         end
+%         power1 = trace(strvctl1*strvctl1');
+%         strvctl1 = strvctl1/sqrt(power1);
+%         power2 = trace(strvctl2*strvctl2');
+%         strvctl2 = strvctl2/sqrt(power2);
+%         Hrl =  strvctl2*strvctl1';
+% %         po = trace(Hrl*Hrl');
+%         beta = sqrt(0.1/2)*(randn(1,1)+1i*randn(1,1));
+% %         Hl0 = sqrt(T*T)*beta*Hrl;%/sqrt(po);
+%         beta = a*beta;
+%         Hl{ct,l} = beta*Hrl;
+% %         Hl{ct,l} = sqrt(0.1)*Hl0/sqrt(trace(Hl0*Hl0'));
+%     end
+% end
+
+% Hc = Hzf{1:I,:,:};
+% Ca = trace((Hc*Hc')^-1)+(strvct1'*Hc*(Hc'*Hc)^-2*Hc'*strvct1)/( ...
+%       1 - strvct1'*Hc*(Hc'*Hc)^-1*Hc'*strvct1);
+% Cb = 1 - strvct1'*Hc*(Hc'*Hc)^-1*Hc'*strvct1;
+% lamdaa = sqrt(1/Cb*(P/(SINRZF*sigma2-Ca)));
+% Hzf{K,I+1,K} = lamdaa*strvct1;
+% HzfM = cell2mat(Hzf);
+% mua = sqrt(P/Ca+(lamdaa^2*Cb)^-1);
+
+
+
+U = cell(I+S,K);
+U(1:I)={zeros()};
+U(I+1,:) = {zeros()};
+% ===============================================================================
+% 随机初始化发射波束向量
+
+V_ini = V_init_v2(I,S,K,T,Nr,d,P);
+V = V_ini;
+
+
+
+% 求初始化发射波束V后求系统和速率
+rate_old = sum_rate_all(H,Hl,V,sigma2,T,Nr,R,I,S,L,K,alpha1);
+average_rate_old = sum_rate(H,Hl,V,sigma2,T,Nr,R,I,S,L,K,alpha1);
+rate = [];
+average_rate = [];
+sense_rate = [];
+% sense_rate_old = sum_rate_sense(H,V,Hzf,Vzf,sigma2,T,R,I,K,alpha1);
+% sense_rate = [sense_rate sense_rate_old];
+com_rate = [];
+% com_rate_old = sum_rate_com(H,V,Hzf,Vzf,sigma2,T,R,I,K,alpha1);
+% com_rate = [com_rate com_rate_old];
+
+
+sense_rate_saver = [];
+sense_rate_saver_zf = [];
+com_rate_saver = [];
+trE_saver = [];
+com_rate_saver_zf = [];
+rate_saver = [];
+average_rate_saver = [];
+x_axis = [];
+BP_data = [];
+% ========================================================================
+
+for w = [1 0.75]
+
+    %     w = 0.5;
+    wr = w
+    wc = (1-wr);
+
+    %     Vzf = mua * HzfM * ((HzfM'*HzfM)^-1);
+    %     Vzf(:,1:I*R) = wc/I*Vzf(:,1:I*R);
+    %     Vzf(:,I*R+1) = wr*Vzf(:,I*R+1);
+    %     Vzf = mat2cell(Vzf,T,[R R 1]);
+
+
+    V = V_ini;
+    alpha1(I+1:I+S,K) = wr/S;
+    for j=1:K
+        for l=1:I
+            alpha1(l,j) = wc/(I);
+        end
+    end
+    rate_old = sum_rate_all(H,Hl,V,sigma2,T,Nr,R,I,S,L,K,alpha1);
+    average_rate_old = sum_rate(H,Hl,V,sigma2,T,Nr,R,I,S,L,K,alpha1);
+    rate = [rate rate_old];
+    average_rate = [average_rate average_rate_old];
+    sense_rate = [];
+    %     sense_rate_zf = [];
+    sense_rate_old = sum_rate_sense(H,Hl,V,sigma2,T,Nr,R,I,S,L,K,alpha1);
+    sense_rate = [sense_rate sense_rate_old];
+    %     sense_rate_zf = [sense_rate_zf sense_rate_zf_old];
+    com_rate = [];
+    %     com_rate_zf = [];
+    com_rate_old = sum_rate_com(H,Hl,V,sigma2,T,Nr,R,I,S,L,K,alpha1);
+    com_rate = [com_rate com_rate_old];
+    %     com_rate_zf = [com_rate_zf,com_rate_zf_old];
+    %     alpha1(I+1,K) = wr;
+    iter1 = 1;
+    while(1)
+
+        U = find_U(H,Hl,V,sigma2,T,Nr,R,I,S,L,K,d); % Tbale I line 4 in p.4435
+        W = find_W(U,H,V,T,Nr,I,S,K,d); % Tbale I line 5 in p.4435
+        %         trE = find_E(W,I,S,K);
+        V = find_V(alpha1,H,Hl,U,W,T,R,I,S,L,K,P); % Tbale I line 6 in p.4435
+        rate_new = sum_rate_all(H,Hl,V,sigma2,T,Nr,R,I,S,L,K,alpha1);
+        average_rate_new = sum_rate(H,Hl,V,sigma2,T,Nr,R,I,S,L,K,alpha1);
+        sense_rate_new = sum_rate_sense(H,Hl,V,sigma2,T,Nr,R,I,S,L,K,alpha1);
+        sense_rate = [sense_rate sense_rate_new];
+        %         sense_rate_zf = [sense_rate_zf sense_rate_zf_new];
+        com_rate_new= sum_rate_com(H,Hl,V,sigma2,T,Nr,R,I,S,L,K,alpha1);
+        com_rate = [com_rate com_rate_new];
+        %         com_rate_zf = [com_rate_zf com_rate_zf_new];
+
+        iter1 = iter1 + 1;
+        if abs(average_rate_new-average_rate_old) / average_rate_old < epsilon|| iter1 > max_iter
+            %           if iter1 > max_iter || (abs(sense_rate_new-sense_rate_old) < 1e-3...
+            %                   &&abs(rate_new-rate_old) / rate_old < epsilon)&&...
+            %                   abs(com_rate_new-com_rate_old) / com_rate_old < epsilon
+            break;
+        end
+        rate_old = rate_new;
+        sense_rate_old = sense_rate_new;
+        com_rate_old = com_rate_new;
+        average_rate_old = average_rate_new;
+    end
+    rate_saver = [rate_saver rate_new];
+    average_rate_saver = [average_rate_saver average_rate_new];
+    %     trE_saver = [trE_saver trE_new];
+    sense_rate_saver = [sense_rate_saver sense_rate_new];
+
+    %     sense_rate_saver_zf = [sense_rate_saver_zf sense_rate_zf_new];
+    com_rate_saver = [com_rate_saver com_rate_new];
+
+    %     com_rate_saver_zf = [com_rate_saver_zf com_rate_zf_new];
+    x_axis = [x_axis wr];
+    %     if t == 0.99
+    %         break;
+    %     end
+    % end
+    % rate_saver_xls = reshape(rate_saver,[100,1]);
+    % sense_rate_xls = reshape(sense_rate_saver,[100,1]);
+    % com_rate_xls = reshape(com_rate_saver,[100,1]);
+    % average_rate_xls = reshape(average_rate_saver,[100,1]);
+    %
+    [V_MMSE] = MMSE_baseline(H,Hl,snr,V_ini);
+
+    % MMSE_rate_xls = reshape(MMSE_rate,[100,1]);
+    % MMSE_average_xls = reshape(MMSE_average,[100,1]);
+    % MMSE_com_xls = reshape(MMSE_com,[100,1]);
+    % MMSE_sense_xls = reshape(MMSE_sense,[100,1]);
+    ad = 0.0454;
+    x = ad/2;
+    u = zeros(1,16);
+    for j = 1 : T
+        u(j) = 0 + (j-1);
+    end
+    lambda = 0.0908;
+    Vb = cell2mat(V);
+    % Vb = zeros();
+%     Vb = V{I+S};
+    angle_search = -pi/2:pi/1000:pi/2;
+    angle_search_xls = 180*angle_search/pi;
+    angle_search_data = reshape(angle_search_xls,1001,1);
+    BP = zeros(size(angle_search));
+    BPz = zeros(size(angle_search));
+    % for s = 1:T
+    Vnc=exp(-1i*2*pi*0.5*sin(0).*u).';
+    pvnc = trace(Vnc*Vnc');
+    Vnc = Vnc/sqrt(pvnc);
+
+    % end
+    for i = 1:length(angle_search)
+        angle = angle_search(i);
+        array = exp(-1i*2*pi*0.5*sin(angle).*u).';
+        BP(i) = real((array'*(Vb*Vb')*array));%regular
+    end
+
+    %no clutter optimized
+    % BP_xls = xlsread("BP_xls.xlsx");
+    BP = pow2db(BP);
+    if wr == 1
+        BPmax = max(BP);
+        style = '#8B4513';
+    else
+        style = '#FF4500';
+    end
+    BP = BP - BPmax;
+    BP = round(BP,3);
+    BPxls = reshape(BP,1001,1) ;
+    BP_data = [BP_data BPxls];
+%     if wr == 1
+    plot(angle_search/(2*pi)*360,BP,'Color',style);
+%     else
+%     plot(angle_search/(2*pi)*360,BP,'-g'); 
+%     end
+    hold on
+
+
+end
+
+for i = 1:length(angle_search)
+    angle = angle_search(i);
+    array = exp(-1i*2*pi*0.5*sin(angle).*u).';
+    BPz(i) = real((array'*P*(Vnc*Vnc')*array));
+end
+BPz = pow2db(BPz);
+BPz = BPz - BPmax;
+BPz = round(BPz,3);
+BPzxls = reshape(BPz,1001,1) ;
+BP_data = [BP_data BPzxls angle_search_data];
+% xlswrite("BP_xls.xlsx",BP_data);
+plot(angle_search/(2*pi)*360,BPz,'Color','#2E8B57');
+hold on
+xline(-10,'LineStyle','--')
+xline(-20,'LineStyle','--')
+xline(10,'LineStyle','--')
+xline(20,'LineStyle','--')
+plot(-10.08,-53.428,'kx',-10.08,-49.585,'kx',-10.0,-12.762,'kx',...
+    10.08,-55.525,'kx',10.08,-51.329,'kx',10.08,-12.762,'kx',...
+    -19.98,-48.507,'kx',-19.98,-45.691,'kx',-19.98,-20.411,'kx',...
+    20.1,-54.491,'kx',20.1,-49.081,'kx', 19.98, -20.411,'kx','MarkerSize',6)
+% brush on
+xlim([-30,30])
+ylim([-70 17.5])
+grid on
+xlabel('$\varphi$','Interpreter','latex')
+ylabel('Normalized Beam Pattern (dB)','FontName','Times New Roman')
+legend('$\omega_{\tau}$ = 1','$\omega_{\tau}$ = 0.75','optimal precoding beamformer (ignoring clutters)',...
+    'FontSize',8.5,'Interpreter','latex','Location','northeast')
