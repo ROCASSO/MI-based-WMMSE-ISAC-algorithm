@@ -249,9 +249,3 @@ rate_saver_xls = reshape(rate_saver,[1,1]);
 sense_rate_xls = reshape(sense_rate_saver,[1,1]);
 com_rate_xls = reshape(com_rate_saver,[1,1]);
 average_rate_xls = reshape(average_rate_saver,[1,1]);
-% 
-[MMSE_rate,MMSE_average,MMSE_com,MMSE_sense] = MMSE_baseline(H,Hl,snr,V_ini);
-MMSE_rate_xls = reshape(MMSE_rate,[1,1]);
-MMSE_average_xls = reshape(MMSE_average,[1,1]);
-MMSE_com_xls = reshape(MMSE_com,[1,1]);
-MMSE_sense_xls = reshape(MMSE_sense,[1,1]);
