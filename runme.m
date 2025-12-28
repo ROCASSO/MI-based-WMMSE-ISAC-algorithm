@@ -11,11 +11,12 @@ sense_rate_all = zeros(100,1,sample_num);
 samples = zeros(1,100,sample_num);
 for snr = 5:5:35
     for sampletime = 1:sample_num
-        [R,S,C] = algorithm(snr);
+        [R,A,S,C] = algorithm(snr);
 
         rate_all(:,:,sampletime) = R;
         com_rate_all(:,:,sampletime) = C;
         sense_rate_all(:,:,sampletime) = S;
+        average_rate_all(:,:,sampletime) = A;
        
 
     end
@@ -25,4 +26,6 @@ for snr = 5:5:35
 rate_average = sum(rate_all,3)/sample_num;
 com_rate_average = sum(com_rate_all,3)/sample_num;
 sense_rate_average = sum(sense_rate_all,3)/sample_num;
+average_rate = sum(average_rate_all,3)/sample_num;
 end
+
