@@ -1,4 +1,4 @@
-function [rate_saver_xls,average_rate_xls,sense_rate_xls,com_rate_xls,MMSE_rate_xls, MMSE_average_xls,MMSE_sense_xls,MMSE_com_xls] = init(snr)
+function [rate_saver_xls,average_rate_xls,sense_rate_xls,com_rate_xls] = algorithm(snr)
 
 K = 1; % 基站个数
 T = 16; % 发射天线个数
@@ -249,3 +249,4 @@ rate_saver_xls = reshape(rate_saver,[1,1]);
 sense_rate_xls = reshape(sense_rate_saver,[1,1]);
 com_rate_xls = reshape(com_rate_saver,[1,1]);
 average_rate_xls = reshape(average_rate_saver,[1,1]);
+
